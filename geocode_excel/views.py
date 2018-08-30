@@ -1,5 +1,4 @@
 import json
-import sys
 import urllib.parse
 import urllib.request
 from datetime import datetime
@@ -11,7 +10,6 @@ from django.http import HttpResponse
 from io import BytesIO
 from rest_framework import serializers
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from .models import Address
