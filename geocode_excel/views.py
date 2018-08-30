@@ -63,32 +63,34 @@ class AddressApiViewSet(ModelViewSet):
         return response
 
     def perform_create(self, serializer):
-        extras = {}
         book = xlrd.open_workbook(
             file_contents=serializer.validated_data["imported_xl"].read()
         )
         first_sheet = book.sheet_by_index(0)
-        if (
-            first_sheet.row_values(0)
-            and first_sheet.row_values(0)[0].lower() == "address"
-            and first_sheet.row_values(1)
-        ):
-            params = {
-                "address": first_sheet.row_values(1)[0],
-                "key": settings.GEOCODING_API_KEY,
-            }
-            qstring = urllib.parse.urlencode(params)
-            url = settings.GEOCODING_API + "?" + qstring
-            f = urllib.request.urlopen(url)
-            result = json.loads(f.read().decode("utf-8"))
-            if result.get("status") == "OK":
-                extras["address"] = result["results"][0].get("formatted_address")
-                extras["lat"] = (
-                    result["results"][0].get("geometry").get("location").get("lat")
-                )
-                extras["lng"] = (
-                    result["results"][0].get("geometry").get("location").get("lng")
-                )
-            else:
-                raise serializers.ValidationError("Invalid data in uploaded excel file")
-        serializer.save(**extras)
+        for i in range(1, first_sheet.nrows):
+            serializer.instance = None
+            extras = {}
+            if (
+                first_sheet.row_values(0)
+                and first_sheet.row_values(0)[0].lower() == "address"
+                and first_sheet.row_values(i)
+            ):
+                params = {
+                    "address": first_sheet.row_values(i)[0],
+                    "key": settings.GEOCODING_API_KEY,
+                }
+                qstring = urllib.parse.urlencode(params)
+                url = settings.GEOCODING_API + "?" + qstring
+                f = urllib.request.urlopen(url)
+                result = json.loads(f.read().decode("utf-8"))
+                if result.get("status") == "OK":
+                    extras["address"] = result["results"][0].get("formatted_address")
+                    extras["lat"] = (
+                        result["results"][0].get("geometry").get("location").get("lat")
+                    )
+                    extras["lng"] = (
+                        result["results"][0].get("geometry").get("location").get("lng")
+                    )
+                else:
+                    raise serializers.ValidationError("Invalid data in uploaded excel file")
+            serializer.save(**extras)
